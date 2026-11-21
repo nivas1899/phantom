@@ -1,0 +1,18 @@
+services:
+  phantom:
+    build: .
+    container_name: phantom
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./output:/output
+    # Default: launches the web dashboard at http://localhost:8080
+    #
+    # CLI scan mode:
+    #   docker compose run phantom scan https://example.com
+    #   docker compose run phantom scan https://example.com -m smuggling,differential
+    #   docker compose run phantom scan https://example.com -o /output/report.json
+    #   docker compose run phantom demo
+    #   docker compose run phantom modules
+    #   docker compose run phantom info
+    command: ["web", "--port", "8080"]

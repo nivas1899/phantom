@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PHANTOM</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+<style>
+:root{
+  --bg:#F5F5FA;--bg-side:#FFFFFF;--bg-panel:#FFFFFF;--bg-panel2:#F0F0F8;
+  --purple:#7C3AED;--neon:#9333FF;--cyan:#0891B2;
+  --crit:#DC2626;--high:#DC2626;--med:#D97706;--low:#059669;--info:#2563EB;
+  --tx:#1A1A2E;--tx2:#4A4A68;--tx3:#8888A0;
+  --border:rgba(0,0,0,.1);--glow:rgba(124,58,237,.06);
+  --mono:'JetBrains Mono',monospace;--sans:'Inter',sans-serif;
+  --sidebar-w:200px;--header-h:56px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--tx);overflow-x:hidden;min-height:100vh}
+::selection{background:var(--purple);color:#fff}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(124,58,237,.25);border-radius:3px}
+
+/* SIDEBAR */
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-w);background:var(--bg-side);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:200;overflow:hidden;box-shadow:1px 0 8px rgba(0,0,0,.04)}
+.sidebar-logo{padding:20px 16px 12px;text-align:center}
+.sidebar-logo svg{width:60px;height:70px;margin-bottom:4px}
+.sidebar-logo .brand{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--purple);letter-spacing:3px}
+.sidebar-logo .ver{font-size:10px;color:var(--tx3);margin-top:2px}
+.sidebar-nav{flex:1;padding:8px 10px;display:flex;flex-direction:column;gap:2px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;color:var(--tx2);transition:all .2s;text-decoration:none}
+.nav-item:hover{color:var(--tx);background:var(--glow)}
+.nav-item.active{color:var(--purple);background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.2);box-shadow:0 0 12px rgba(124,58,237,.06);font-weight:600}
+.nav-item i{width:18px;height:18px;flex-shrink:0}
+.sidebar-bottom{padding:16px;border-top:1px solid var(--border)}
+.sidebar-status{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--tx3)}
+.sidebar-status .dot{width:6px;height:6px;border-radius:50%;background:var(--low);animation:pulse 2s infinite}
+.sidebar-bg{position:absolute;bottom:50px;left:0;right:0;height:120px;opacity:.04;background:radial-gradient(ellipse at center,var(--purple),transparent 70%)}
+
+/* HEADER */
+.header{position:fixed;top:0;left:var(--sidebar-w);right:0;height:var(--header-h);background:var(--bg-side);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;z-index:100}
+.header-left{display:flex;align-items:center;gap:12px}
+.header-left .title{font-family:var(--mono);font-size:20px;font-weight:800;color:var(--tx);letter-spacing:3px}
+.header-left .sep{width:1px;height:24px;background:var(--border);margin:0 4px}
+.header-left .sub{font-size:12px;color:var(--tx2);max-width:400px}
+.header-right{display:flex;align-items:center;gap:16px}
+.header-right .notif{position:relative;cursor:pointer;color:var(--tx2)}
+.header-right .notif:hover{color:var(--tx)}
+.header-user{display:flex;align-items:center;gap:10px;cursor:pointer}
+.header-user .avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--neon));display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(124,58,237,.2)}
+.header-user .avatar i{color:#fff;width:16px;height:16px}
+.header-user .name{font-size:13px;font-weight:600}
+.header-user .role{font-size:11px;color:var(--tx2)}
+
+/* MAIN */
+.main{margin-left:var(--sidebar-w);margin-top:var(--header-h);padding:16px 20px;min-height:calc(100vh - var(--header-h))}
+
+/* VIEWS */
+.view{display:none}.view.active{display:block}
+
+/* CARDS */
+.card{background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:16px;transition:border-color .3s;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.card:hover{border-color:rgba(124,58,237,.25)}
+.card-title{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--tx2);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card-title i{width:14px;height:14px;color:var(--purple)}
+
+/* DASHBOARD GRID */
+.dash-grid{display:grid;gap:14px}
+.dash-row1{display:grid;grid-template-columns:1fr 340px;gap:14px}
+.dash-row2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.dash-row3{display:grid;grid-template-columns:280px 1fr 320px;gap:14px}
+
+/* LIVE SCAN PANEL */
+.live-scan{padding:20px}
+.live-scan .ls-header{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.live-scan .ls-dot{width:10px;height:10px;border-radius:50%;background:var(--low);animation:pulse 1.5s infinite}
+.live-scan .ls-dot.idle{background:var(--tx3);animation:none}
+.live-scan .ls-label{font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:2px;color:var(--low)}
+.live-scan .ls-label.idle{color:var(--tx3)}
+.ls-body{display:flex;gap:24px;align-items:center}
+.ls-info{flex:1}
+.ls-target{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.ls-target a{font-family:var(--mono);font-size:16px;font-weight:600;color:var(--tx);text-decoration:none}
+.ls-target a:hover{color:var(--purple)}
+.ls-target i{width:14px;height:14px;color:var(--tx3)}
+.ls-status{font-size:12px;color:var(--tx2);margin-bottom:16px}
+.ls-progress{margin-bottom:4px}
+.ls-progress-bar{height:6px;background:var(--bg-panel2);border-radius:3px;overflow:hidden;margin-bottom:6px}
+.ls-progress-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--purple),var(--neon),var(--purple));background-size:200% 100%;animation:shimmer 2s linear infinite;transition:width .5s ease}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.ls-pct{font-family:var(--mono);font-size:12px;color:var(--neon)}
+.ls-scanner{width:180px;height:180px;position:relative;flex-shrink:0}
+.ls-scanner svg{width:100%;height:100%}
+.scan-ring{fill:none;transform-origin:center;animation-timing-function:linear;animation-iteration-count:infinite}
+.ring1{stroke:rgba(124,58,237,.12);stroke-width:1.5;animation:rot 20s linear infinite}
+.ring2{stroke:rgba(124,58,237,.2);stroke-width:1;stroke-dasharray:8 6;animation:rot 12s linear infinite reverse}
+.ring3{stroke:var(--purple);stroke-width:1.5;stroke-dasharray:20 60;animation:rot 4s linear infinite;filter:drop-shadow(0 0 4px var(--purple))}
+.ring4{stroke:var(--neon);stroke-width:.8;stroke-dasharray:4 30;animation:rot 3s linear infinite reverse;filter:drop-shadow(0 0 3px var(--neon))}
+.scanner-idle .ring3,.scanner-idle .ring4{animation:none;opacity:.2}
+@keyframes rot{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+.scanner-ghost{fill:var(--purple);opacity:.7;filter:drop-shadow(0 0 6px var(--purple))}
+.ls-modules{display:flex;flex-direction:column;gap:6px;min-width:170px}
+.ls-mod{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--tx2)}
+.ls-mod .mod-icon{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px}
+.ls-mod .mod-icon.done{background:rgba(5,150,105,.1);color:var(--low)}
+.ls-mod .mod-icon.running{background:rgba(217,119,6,.1);color:var(--med);animation:pulse 1s infinite}
+.ls-mod .mod-icon.pending{background:rgba(136,136,160,.1);color:var(--tx3)}
+.ls-mod .mod-name.running{color:var(--med);font-weight:600}
+
+/* SCAN SUMMARY */
+.scan-summary{padding:16px}
+.ss-stats{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:12px}
+.ss-stat{text-align:center;padding:10px 4px;background:var(--bg-panel2);border-radius:8px;border:1px solid var(--border)}
+.ss-stat .num{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--tx)}
+.ss-stat .lbl{font-family:var(--mono);font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+.ss-stat i{width:14px;height:14px;color:var(--purple);margin-bottom:2px}
+.ss-sevs{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.ss-sev{text-align:center;padding:10px 4px;border-radius:8px;border:1px solid var(--border);background:var(--bg-panel2)}
+.ss-sev .num{font-family:var(--mono);font-size:20px;font-weight:700}
+.ss-sev .lbl{font-size:9px;text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+.ss-sev.crit .num{color:var(--crit)}.ss-sev.crit .lbl{color:var(--crit)}
+.ss-sev.high .num{color:var(--high)}.ss-sev.high .lbl{color:var(--high)}
+.ss-sev.med .num{color:var(--med)}.ss-sev.med .lbl{color:var(--med)}
+.ss-sev.low .num{color:var(--low)}.ss-sev.low .lbl{color:var(--low)}
+.ss-sev.inf .num{color:var(--info)}.ss-sev.inf .lbl{color:var(--info)}
+
+/* FINGERPRINT */
+.fp-table{width:100%}
+.fp-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(0,0,0,.06)}
+.fp-row:last-child{border-bottom:none}
+.fp-icon{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.fp-icon i{width:14px;height:14px}
+.fp-icon.cdn{background:rgba(8,145,178,.08);color:var(--cyan)}
+.fp-icon.waf{background:rgba(220,38,38,.08);color:var(--crit)}
+.fp-icon.srv{background:rgba(124,58,237,.08);color:var(--purple)}
+.fp-icon.fw{background:rgba(217,119,6,.08);color:var(--med)}
+.fp-icon.lang{background:rgba(37,99,235,.08);color:var(--info)}
+.fp-label{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--tx);width:100px}
+.fp-value{font-size:12px;color:var(--tx2)}
+.fp-depth{display:flex;align-items:center;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(0,0,0,.06)}
+.fp-depth-label{font-family:var(--mono);font-size:11px;color:var(--tx2)}
+.fp-depth-bar{display:flex;gap:3px;flex:1}
+.fp-depth-seg{height:8px;flex:1;border-radius:2px;background:var(--bg-panel2);transition:background .5s}
+.fp-depth-seg.filled{background:linear-gradient(90deg,var(--cyan),var(--purple))}
+.fp-depth-num{font-family:var(--mono);font-size:12px;color:var(--tx)}
+
+/* DONUT */
+.donut-wrap{display:flex;align-items:center;gap:20px;justify-content:center}
+.donut-chart{width:140px;height:140px;position:relative}
+.donut-chart svg{transform:rotate(-90deg)}
+.donut-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+.donut-center .num{font-family:var(--mono);font-size:28px;font-weight:700;color:var(--tx)}
+.donut-center .lbl{font-size:10px;color:var(--tx3)}
+.donut-legend{display:flex;flex-direction:column;gap:8px}
+.donut-legend-item{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--tx2)}
+.donut-legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.donut-legend-item .pct{color:var(--tx3);font-size:11px}
+
+/* CHAINS */
+.chains-panel .chain-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.chains-panel .view-all{font-size:12px;color:var(--tx2);cursor:pointer;display:flex;align-items:center;gap:4px}
+.chains-panel .view-all:hover{color:var(--purple)}
+.chain-flow{display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:14px;padding:12px 0}
+.chain-node{text-align:center;width:90px}
+.chain-node-icon{width:48px;height:48px;border-radius:10px;background:var(--bg-panel2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;margin:0 auto 6px;transition:border-color .3s,box-shadow .3s}
+.chain-node-icon:hover{border-color:var(--purple);box-shadow:0 0 12px rgba(124,58,237,.15)}
+.chain-node-icon i{width:20px;height:20px;color:var(--purple)}
+.chain-node-label{font-size:10px;color:var(--tx2);line-height:1.3}
+.chain-arrow{color:var(--purple);font-size:16px;opacity:.5}
+.chain-desc{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;background:var(--bg-panel2);border-radius:8px;border:1px solid var(--border)}
+.chain-desc-text{font-size:12px;color:var(--tx2);flex:1}
+.chain-desc-text strong{color:var(--tx);font-weight:600}
+.sev-badge{font-family:var(--mono);font-size:9px;font-weight:700;padding:3px 10px;border-radius:4px;text-transform:uppercase;letter-spacing:1px;white-space:nowrap}
+.sev-badge.critical{background:rgba(220,38,38,.08);color:var(--crit);border:1px solid rgba(220,38,38,.2)}
+.sev-badge.high{background:rgba(220,38,38,.08);color:var(--high);border:1px solid rgba(220,38,38,.2)}
+.sev-badge.medium{background:rgba(217,119,6,.08);color:var(--med);border:1px solid rgba(217,119,6,.2)}
+.sev-badge.low{background:rgba(5,150,105,.08);color:var(--low);border:1px solid rgba(5,150,105,.2)}
+.sev-badge.info{background:rgba(37,99,235,.08);color:var(--info);border:1px solid rgba(37,99,235,.2)}
+.chain-nav{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px}
+.chain-nav .dot{width:8px;height:8px;border-radius:50%;background:var(--tx3);cursor:pointer;transition:background .2s}
+.chain-nav .dot.active{background:var(--low)}
+.chain-nav .arrow{width:28px;height:28px;border-radius:50%;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--tx2);transition:all .2s}
+.chain-nav .arrow:hover{border-color:var(--purple);color:var(--purple)}
+
+/* MODULES PANEL */
+.mod-list{display:flex;flex-direction:column;gap:6px}
+.mod-item{display:flex;align-items:center;gap:10px;padding:12px;background:var(--bg-panel2);border-radius:8px;border:1px solid var(--border);transition:border-color .3s}
+.mod-item:hover{border-color:rgba(124,58,237,.25)}
+.mod-item-icon{width:32px;height:32px;border-radius:8px;background:rgba(124,58,237,.08);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mod-item-icon i{width:16px;height:16px;color:var(--purple)}
+.mod-item-name{flex:1;font-size:13px;font-weight:500}
+.mod-item-status{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.mod-item-status.done{color:var(--low)}
+.mod-item-status.running{color:var(--med);animation:pulse 1s infinite}
+.mod-item-status.pending{color:var(--tx3)}
+
+/* FINDINGS LIST */
+.findings-panel .fp-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.findings-panel .fp-filters{display:flex;gap:4px;flex-wrap:wrap}
+.fp-filter{font-family:var(--mono);font-size:11px;padding:5px 12px;border-radius:6px;cursor:pointer;background:transparent;border:1px solid var(--border);color:var(--tx2);transition:all .2s}
+.fp-filter:hover{border-color:var(--purple);color:var(--tx)}
+.fp-filter.active{background:rgba(124,58,237,.1);border-color:var(--purple);color:var(--purple)}
+.fp-search{display:flex;align-items:center;gap:6px;background:var(--bg-panel2);border:1px solid var(--border);border-radius:6px;padding:0 10px}
+.fp-search i{width:14px;height:14px;color:var(--tx3)}
+.fp-search input{background:transparent;border:none;outline:none;color:var(--tx);font-size:12px;padding:6px 0;width:140px;font-family:var(--sans)}
+.fp-search input::placeholder{color:var(--tx3)}
+.finding-card{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg-panel2);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;transition:all .2s}
+.finding-card:hover{border-color:rgba(124,58,237,.25);background:rgba(124,58,237,.03)}
+.finding-card-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.finding-card-icon i{width:16px;height:16px}
+.finding-card-icon.critical,.finding-card-icon.high{background:rgba(220,38,38,.08);color:var(--crit)}
+.finding-card-icon.medium{background:rgba(217,119,6,.08);color:var(--med)}
+.finding-card-icon.low{background:rgba(5,150,105,.08);color:var(--low)}
+.finding-card-icon.info{background:rgba(37,99,235,.08);color:var(--info)}
+.finding-card-body{flex:1;min-width:0}
+.finding-card-title{font-size:13px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.finding-card-tags{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+.finding-card-tag{font-size:9px;padding:2px 6px;border-radius:4px;background:var(--bg-panel2);color:var(--tx2);border:1px solid var(--border)}
+.finding-card-num{font-family:var(--mono);font-size:11px;color:var(--tx3)}
+.finding-card-expand{color:var(--tx3);cursor:pointer;width:16px;height:16px;flex-shrink:0}
+
+/* FINDING DETAIL MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:300;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg-panel);border:1px solid var(--border);border-radius:12px;width:100%;max-width:700px;max-height:80vh;overflow-y:auto;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.12)}
+.modal-close{float:right;cursor:pointer;color:var(--tx3);transition:color .2s}
+.modal-close:hover{color:var(--tx)}
+.modal h2{font-size:16px;font-weight:700;margin-bottom:4px}
+.modal .meta{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 16px}
+.modal .evidence-block{background:var(--bg-panel2);border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12px;color:var(--tx2);white-space:pre-wrap;word-break:break-all;margin:8px 0}
+.modal .section-label{font-family:var(--mono);font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px;margin:12px 0 6px}
+.modal .diff-table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0}
+.modal .diff-table th{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--tx3);padding:6px;text-align:left;border-bottom:1px solid var(--border)}
+.modal .diff-table td{padding:6px;border-bottom:1px solid rgba(0,0,0,.06);color:var(--tx2)}
+.modal .fix{padding:10px 12px;background:rgba(5,150,105,.05);border-left:3px solid var(--low);border-radius:0 6px 6px 0;font-size:12px;color:var(--low);margin-top:8px}
+
+/* ACTIVITY CHART */
+.activity-chart{display:flex;align-items:flex-end;gap:3px;height:100px;padding:8px 0}
+.activity-bar{flex:1;border-radius:2px 2px 0 0;min-width:4px;transition:height .3s;position:relative}
+.activity-bar:hover{opacity:.8}
+.activity-axis{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--tx3);margin-top:4px}
+
+/* LIVE LOGS */
+.logs-container{background:var(--bg-panel2);border:1px solid var(--border);border-radius:8px;padding:10px;height:160px;overflow-y:auto;font-family:var(--mono);font-size:11px;line-height:1.6}
+.log-line{color:var(--tx2)}
+.log-line .ts{color:var(--tx3)}
+.log-line .method{color:var(--cyan)}
+.log-line .path{color:var(--tx)}
+.log-line .arrow{color:var(--tx3)}
+.log-line .status{color:var(--low)}
+.log-line.finding{color:var(--med)}
+.log-line.error{color:var(--crit)}
+.log-line.module{color:var(--purple)}
+.logs-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.logs-header .rt{font-size:10px;color:var(--low);display:flex;align-items:center;gap:4px}
+.logs-header .rt .dot{width:5px;height:5px;border-radius:50%;background:var(--low);animation:pulse 1s infinite}
+
+/* NEW SCAN VIEW */
+.new-scan-form{max-width:600px;margin:0 auto;padding:40px 0}
+.form-group{margin-bottom:20px}
+.form-label{font-family:var(--mono);font-size:11px;color:var(--tx2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;display:block}
+.form-input{width:100%;background:var(--bg-panel2);border:1px solid var(--border);color:var(--tx);padding:12px 16px;border-radius:8px;font-size:14px;outline:none;font-family:var(--mono);transition:border-color .2s}
+.form-input:focus{border-color:var(--purple);box-shadow:0 0 0 3px rgba(124,58,237,.08)}
+.form-input::placeholder{color:var(--tx3)}
+.form-select{width:100%;background:var(--bg-panel2);border:1px solid var(--border);color:var(--tx);padding:12px 16px;border-radius:8px;font-size:13px;outline:none;font-family:var(--mono);cursor:pointer}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn{padding:12px 24px;border:none;border-radius:8px;font-family:var(--mono);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;letter-spacing:1px;text-transform:uppercase}
+.btn-primary{background:linear-gradient(135deg,var(--purple),var(--neon));color:#fff}
+.btn-primary:hover{box-shadow:0 4px 16px rgba(124,58,237,.3);transform:translateY(-1px)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-secondary{background:transparent;color:var(--purple);border:1px solid var(--purple)}
+.btn-secondary:hover{background:rgba(124,58,237,.06)}
+.btn-ghost{background:transparent;color:var(--tx2);border:1px solid var(--border)}
+.btn-ghost:hover{border-color:var(--purple);color:var(--tx)}
+
+/* HISTORY TABLE */
+.history-table{width:100%;border-collapse:collapse}
+.history-table th{font-family:var(--mono);font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px;padding:10px 12px;text-align:left;border-bottom:1px solid var(--border)}
+.history-table td{padding:10px 12px;border-bottom:1px solid rgba(0,0,0,.06);color:var(--tx2);font-size:13px}
+.history-table tr:hover td{background:rgba(124,58,237,.03)}
+.history-table .scan-link{color:var(--cyan);cursor:pointer;font-family:var(--mono);font-size:12px}
+.history-table .scan-link:hover{text-decoration:underline}
+
+/* EMPTY */
+.empty{text-align:center;padding:40px 20px;color:var(--tx3)}
+.empty i{width:40px;height:40px;margin-bottom:12px;opacity:.3}
+.empty .title{font-size:15px;color:var(--tx2);margin-bottom:6px}
+.empty .desc{font-size:12px}
+
+/* CHAINS DETAIL VIEW */
+.chain-detail{background:var(--bg-panel2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px}
+.chain-detail .ch-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.chain-detail .ch-name{font-size:14px;font-weight:700;flex:1}
+.chain-detail .ch-impact{font-size:12px;color:var(--tx2);margin-bottom:10px}
+.chain-detail .ch-steps{list-style:none;padding-left:20px;border-left:2px solid var(--border)}
+.chain-detail .ch-step{padding:6px 0 6px 12px;font-size:12px;color:var(--tx2);position:relative}
+.chain-detail .ch-step::before{content:'';position:absolute;left:-7px;top:12px;width:12px;height:12px;border-radius:50%;background:var(--purple);border:2px solid var(--bg-panel)}
+
+/* ANIMATIONS */
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeIn .4s ease}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <svg viewBox="0 0 80 100" width="60" height="70">
+      <defs>
+        <linearGradient id="hg" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#B44CFF" stop-opacity=".5"/>
+          <stop offset="100%" stop-color="#9333FF" stop-opacity=".1"/>
+        </linearGradient>
+        <filter id="gl"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <path d="M40 8C22 8 10 26 10 44v20c0 14 12 26 30 26s30-12 30-26V44c0-18-12-36-30-36z" fill="url(#hg)" stroke="#9333FF" stroke-width="1.5"/>
+      <path d="M28 42c0 12 24 12 24 0 0-8-8-14-12-14s-12 6-12 14z" fill="rgba(147,51,255,.08)"/>
+      <ellipse cx="34" cy="44" rx="4" ry="3" fill="#B44CFF" filter="url(#gl)"/>
+      <ellipse cx="46" cy="44" rx="4" ry="3" fill="#B44CFF" filter="url(#gl)"/>
+    </svg>
+    <div class="brand">PHANTOM</div>
+    <div class="ver">v1.0.0</div>
+  </div>
+  <nav class="sidebar-nav" id="sideNav">
+    <a class="nav-item active" data-view="dashboard"><i data-lucide="layout-dashboard"></i>Dashboard</a>
+    <a class="nav-item" data-view="newscan"><i data-lucide="scan"></i>New Scan</a>
+    <a class="nav-item" data-view="history"><i data-lucide="history"></i>Scans History</a>
+    <a class="nav-item" data-view="findings-view"><i data-lucide="shield-alert"></i>Findings</a>
+    <a class="nav-item" data-view="chains-view"><i data-lucide="link"></i>Attack Chains</a>
+    <a class="nav-item" data-view="reports"><i data-lucide="file-text"></i>Reports</a>
+  </nav>
+  <div class="sidebar-bg"></div>
+  <div class="sidebar-bottom">
+    <div class="sidebar-status"><div class="dot"></div><span id="sidebarStatus">System Online</span></div>
+  </div>
+</aside>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-left">
+    <span class="title">PHANTOM</span>
+    <div class="sep"></div>
+    <span class="sub">Protocol Hallucination & Anomaly Network Testing Oracle Machine</span>
+  </div>
+  <div class="header-right">
+    <div class="notif"><i data-lucide="bell"></i></div>
+  </div>
+</header>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+
+  <!-- ===== DASHBOARD VIEW ===== -->
+  <div class="view active" id="view-dashboard">
+    <div class="dash-grid">
+      <!-- ROW 1 -->
+      <div class="dash-row1">
+        <div class="card live-scan" id="liveScan">
+          <div class="ls-header">
+            <div class="ls-dot idle" id="lsDot"></div>
+            <span class="ls-label idle" id="lsLabel">LIVE SCAN</span>
+          </div>
+          <div class="ls-body">
+            <div class="ls-info">
+              <div class="ls-target" id="lsTarget">
+                <a href="#" id="lsUrl">No active scan</a>
+                <i data-lucide="external-link" style="width:14px;height:14px;color:var(--tx3)"></i>
+              </div>
+              <div class="ls-status" id="lsStatus">Start a new scan to begin analysis</div>
+              <div class="ls-progress">
+                <div class="ls-progress-bar"><div class="ls-progress-fill" id="lsBar" style="width:0"></div></div>
+                <div class="ls-pct" id="lsPct">0%</div>
+              </div>
+            </div>
+            <div class="ls-scanner scanner-idle" id="lsScanner">
+              <svg viewBox="0 0 200 200">
+                <circle class="scan-ring ring1" cx="100" cy="100" r="92"/>
+                <circle class="scan-ring ring2" cx="100" cy="100" r="78"/>
+                <circle class="scan-ring ring3" cx="100" cy="100" r="64"/>
+                <circle class="scan-ring ring4" cx="100" cy="100" r="50"/>
+                <g transform="translate(72,60)">
+                  <path d="M28 2C14 2 4 16 4 30v14c0 10 8 18 24 18s24-8 24-18V30C52 16 42 2 28 2z" fill="rgba(147,51,255,.15)" stroke="#9333FF" stroke-width="1"/>
+                  <ellipse cx="22" cy="28" rx="3" ry="2.5" class="scanner-ghost"/>
+                  <ellipse cx="34" cy="28" rx="3" ry="2.5" class="scanner-ghost"/>
+                </g>
+              </svg>
+            </div>
+            <div class="ls-modules" id="lsModules">
+              <div class="ls-mod" data-mod="fingerprint"><div class="mod-icon pending">○</div><span class="mod-name">Fingerprinting</span></div>
+              <div class="ls-mod" data-mod="differential"><div class="mod-icon pending">○</div><span class="mod-name">Parser Differential</span></div>
+              <div class="ls-mod" data-mod="smuggling"><div class="mod-icon pending">○</div><span class="mod-name">HTTP Smuggling</span></div>
+              <div class="ls-mod" data-mod="confusion"><div class="mod-icon pending">○</div><span class="mod-name">Confusion Attacks</span></div>
+              <div class="ls-mod" data-mod="header"><div class="mod-icon pending">○</div><span class="mod-name">Header Injection</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="card scan-summary">
+          <div class="card-title"><i data-lucide="bar-chart-3"></i>Scan Summary</div>
+          <div class="ss-stats">
+            <div class="ss-stat"><i data-lucide="shield-alert"></i><div class="num" id="ssFindings">0</div><div class="lbl">Findings</div></div>
+            <div class="ss-stat"><i data-lucide="link"></i><div class="num" id="ssChains">0</div><div class="lbl">Attack Chains</div></div>
+            <div class="ss-stat"><i data-lucide="arrow-left-right"></i><div class="num" id="ssRequests">0</div><div class="lbl">Requests</div></div>
+            <div class="ss-stat"><i data-lucide="clock"></i><div class="num" id="ssDuration">0s</div><div class="lbl">Duration</div></div>
+          </div>
+          <div class="ss-sevs">
+            <div class="ss-sev crit"><div class="num" id="ssCrit">0</div><div class="lbl">Critical</div></div>
+            <div class="ss-sev high"><div class="num" id="ssHigh">0</div><div class="lbl">High</div></div>
+            <div class="ss-sev med"><div class="num" id="ssMed">0</div><div class="lbl">Medium</div></div>
+            <div class="ss-sev low"><div class="num" id="ssLow">0</div><div class="lbl">Low</div></div>
+            <div class="ss-sev inf"><div class="num" id="ssInfo">0</div><div class="lbl">Info</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ROW 2 -->
+      <div class="dash-row2">
+        <div class="card">
+          <div class="card-title"><i data-lucide="layers"></i>Stack Fingerprint — Parsing Layers</div>
+          <div id="fpPanel">
+            <div class="empty"><i data-lucide="layers"></i><div class="desc">Fingerprint will appear after scan</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title"><i data-lucide="pie-chart"></i>Findings by Severity</div>
+          <div id="donutPanel">
+            <div class="donut-wrap">
+              <div class="donut-chart"><svg viewBox="0 0 36 36" id="donutSvg"><circle cx="18" cy="18" r="14" fill="none" stroke="var(--bg-panel2)" stroke-width="4"/></svg><div class="donut-center"><div class="num" id="donutNum">0</div><div class="lbl">Total<br>Findings</div></div></div>
+              <div class="donut-legend" id="donutLegend">
+                <div class="donut-legend-item"><div class="donut-legend-dot" style="background:var(--crit)"></div>Critical <strong id="dlCrit">0</strong> <span class="pct" id="dlCritP">(0%)</span></div>
+                <div class="donut-legend-item"><div class="donut-legend-dot" style="background:var(--high)"></div>High <strong id="dlHigh">0</strong> <span class="pct" id="dlHighP">(0%)</span></div>
+                <div class="donut-legend-item"><div class="donut-legend-dot" style="background:var(--med)"></div>Medium <strong id="dlMed">0</strong> <span class="pct" id="dlMedP">(0%)</span></div>
+                <div class="donut-legend-item"><div class="donut-legend-dot" style="background:var(--low)"></div>Low <strong id="dlLow">0</strong> <span class="pct" id="dlLowP">(0%)</span></div>
+                <div class="donut-legend-item"><div class="donut-legend-dot" style="background:var(--info)"></div>Info <strong id="dlInfo">0</strong> <span class="pct" id="dlInfoP">(0%)</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card chains-panel">
+          <div class="chain-header">
+            <div class="card-title" style="margin:0"><i data-lucide="git-branch"></i>Attack Chains (<span id="chainCount">0</span>)</div>
+            <div class="view-all" onclick="switchView('chains-view')">View All <i data-lucide="arrow-right" style="width:14px;height:14px"></i></div>
+          </div>
+          <div id="chainPreview">
+            <div class="empty" style="padding:20px"><i data-lucide="link"></i><div class="desc">Chains appear after scan</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ROW 3 -->
+      <div class="dash-row3">
+        <div class="card">
+          <div class="card-title"><i data-lucide="cpu"></i>Scan Modules</div>
+          <div class="mod-list" id="modList">
+            <div class="mod-item"><div class="mod-item-icon"><i data-lucide="fingerprint"></i></div><div class="mod-item-name">Fingerprint Scanner</div><div class="mod-item-status pending" id="modSt_fingerprint"><i data-lucide="circle" style="width:14px;height:14px"></i></div></div>
+            <div class="mod-item"><div class="mod-item-icon"><i data-lucide="git-compare"></i></div><div class="mod-item-name">Parser Differential</div><div class="mod-item-status pending" id="modSt_differential"><i data-lucide="circle" style="width:14px;height:14px"></i></div></div>
+            <div class="mod-item"><div class="mod-item-icon"><i data-lucide="shuffle"></i></div><div class="mod-item-name">HTTP Smuggling</div><div class="mod-item-status pending" id="modSt_smuggling"><i data-lucide="circle" style="width:14px;height:14px"></i></div></div>
+            <div class="mod-item"><div class="mod-item-icon"><i data-lucide="zap"></i></div><div class="mod-item-name">Confusion Attacks</div><div class="mod-item-status pending" id="modSt_confusion"><i data-lucide="circle" style="width:14px;height:14px"></i></div></div>
+            <div class="mod-item"><div class="mod-item-icon"><i data-lucide="code"></i></div><div class="mod-item-name">Header Injection</div><div class="mod-item-status pending" id="modSt_header"><i data-lucide="circle" style="width:14px;height:14px"></i></div></div>
+          </div>
+        </div>
+        <div class="card findings-panel">
+          <div class="fp-header">
+            <div class="card-title" style="margin:0"><i data-lucide="shield-alert"></i>Findings (<span id="findingsCount">0</span>)</div>
+            <div class="fp-search"><i data-lucide="search"></i><input type="text" placeholder="Search findings..." id="findingsSearch" oninput="filterFindings()"/></div>
+          </div>
+          <div class="fp-filters" id="fpFilters">
+            <div class="fp-filter active" data-sev="all" onclick="setFilter('all')">All (<span id="fAll">0</span>)</div>
+            <div class="fp-filter" data-sev="critical" onclick="setFilter('critical')">Critical (<span id="fCrit">0</span>)</div>
+            <div class="fp-filter" data-sev="high" onclick="setFilter('high')">High (<span id="fHigh">0</span>)</div>
+            <div class="fp-filter" data-sev="medium" onclick="setFilter('medium')">Medium (<span id="fMed">0</span>)</div>
+            <div class="fp-filter" data-sev="low" onclick="setFilter('low')">Low (<span id="fLow">0</span>)</div>
+            <div class="fp-filter" data-sev="info" onclick="setFilter('info')">Info (<span id="fInfo">0</span>)</div>
+          </div>
+          <div id="findingsList" style="margin-top:8px;max-height:300px;overflow-y:auto">
+            <div class="empty" style="padding:20px"><i data-lucide="shield"></i><div class="desc">Start a scan to see findings</div></div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div class="card" style="flex:1">
+            <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+              <span><i data-lucide="activity"></i> Request Activity</span>
+              <span style="font-family:var(--mono);font-size:12px;color:var(--tx)"><i data-lucide="bar-chart" style="width:12px;height:12px;display:inline"></i> <span id="actTotal">0</span> Requests</span>
+            </div>
+            <div class="activity-chart" id="actChart"></div>
+            <div class="activity-axis"><span>0s</span><span id="actMid">-</span><span id="actEnd">-</span></div>
+          </div>
+          <div class="card" style="flex:1">
+            <div class="logs-header">
+              <div class="card-title" style="margin:0"><i data-lucide="terminal"></i> Live Logs</div>
+              <div class="rt"><div class="dot"></div>Real-time</div>
+            </div>
+            <div class="logs-container" id="logsContainer"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== NEW SCAN VIEW ===== -->
+  <div class="view" id="view-newscan">
+    <div class="new-scan-form">
+      <h2 style="font-size:20px;margin-bottom:4px">New Scan</h2>
+      <p style="color:var(--tx2);font-size:13px;margin-bottom:24px">Configure and launch an inter-layer exploitation scan</p>
+      <div class="form-group">
+        <label class="form-label">Target URL</label>
+        <input type="text" class="form-input" id="scanTarget" placeholder="https://example.com"/>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Modules</label>
+          <select class="form-select" id="scanModules">
+            <option value="all">All Modules</option>
+            <option value="fingerprint,differential">Fingerprint + Differential</option>
+            <option value="smuggling">Smuggling Only</option>
+            <option value="confusion,header">Confusion + Header</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Timeout (seconds)</label>
+          <input type="number" class="form-input" id="scanTimeout" value="10"/>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:8px">
+        <button class="btn btn-primary" onclick="launchScan()" id="launchBtn">Launch Scan</button>
+        <button class="btn btn-secondary" onclick="launchDemo()">Demo Mode</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== HISTORY VIEW ===== -->
+  <div class="view" id="view-history">
+    <div class="card">
+      <div class="card-title"><i data-lucide="history"></i>Scan History</div>
+      <table class="history-table">
+        <thead><tr><th>ID</th><th>Target</th><th>Status</th><th>Findings</th><th>Chains</th><th>Critical</th><th>High</th><th>Duration</th></tr></thead>
+        <tbody id="historyBody"><tr><td colspan="8" class="empty"><div class="desc">No scans yet</div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== FINDINGS DETAIL VIEW ===== -->
+  <div class="view" id="view-findings-view">
+    <div class="card">
+      <div class="card-title"><i data-lucide="shield-alert"></i>All Findings</div>
+      <div id="allFindingsList"></div>
+    </div>
+  </div>
+
+  <!-- ===== CHAINS DETAIL VIEW ===== -->
+  <div class="view" id="view-chains-view">
+    <div class="card">
+      <div class="card-title"><i data-lucide="git-branch"></i>Attack Chains</div>
+      <div id="allChainsList"></div>
+    </div>
+  </div>
+
+  <!-- ===== REPORTS VIEW ===== -->
+  <div class="view" id="view-reports">
+    <div class="card" style="max-width:500px">
+      <div class="card-title"><i data-lucide="file-text"></i>Export Reports</div>
+      <p style="color:var(--tx2);font-size:13px;margin-bottom:16px">Export the latest scan results</p>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button class="btn btn-ghost" onclick="exportReport('json')"><i data-lucide="file-json" style="width:14px;height:14px;display:inline;vertical-align:middle"></i> Export JSON</button>
+        <button class="btn btn-ghost" onclick="exportReport('html')"><i data-lucide="globe" style="width:14px;height:14px;display:inline;vertical-align:middle"></i> Export HTML Report</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TARGETS / SETTINGS PLACEHOLDER ===== -->
+  <div class="view" id="view-targets">
+    <div class="card"><div class="empty"><i data-lucide="crosshair"></i><div class="title">Saved Targets</div><div class="desc">Target management coming soon</div></div></div>
+  </div>
+  <div class="view" id="view-settings">
+    <div class="card"><div class="empty"><i data-lucide="settings"></i><div class="title">Settings</div><div class="desc">Configuration options coming soon</div></div></div>
+  </div>
+</div>
+
+<!-- FINDING DETAIL MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modalContent"></div>
+</div>
+
+<script>
+// ── STATE ──
+let currentScanId = null;
+let pollTimer = null;
+let scanData = null;
+let activeFilter = 'all';
+let chainIndex = 0;
+
+// ── NAV ──
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => switchView(item.dataset.view));
+});
+
+function switchView(view) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const nav = document.querySelector(`.nav-item[data-view="${view}"]`);
+  if (nav) nav.classList.add('active');
+  const el = document.getElementById('view-' + view);
+  if (el) el.classList.add('active');
+  if (view === 'history') loadHistory();
+  if (view === 'findings-view' && scanData) renderAllFindings();
+  if (view === 'chains-view' && scanData) renderAllChains();
+}
+
+// ── API ──
+async function api(path, opts) {
+  const r = await fetch('/api' + path, opts);
+  return r.json();
+}
+
+// ── LAUNCH SCAN ──
+async function launchScan() {
+  const target = document.getElementById('scanTarget').value.trim();
+  if (!target) { document.getElementById('scanTarget').focus(); return; }
+  const modules = document.getElementById('scanModules').value;
+  const timeout = parseFloat(document.getElementById('scanTimeout').value) || 10;
+  document.getElementById('launchBtn').disabled = true;
+  const d = await api('/scan', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({target, modules, timeout})});
+  currentScanId = d.scan_id;
+  resetDashboard();
+  switchView('dashboard');
+  startPolling();
+  document.getElementById('launchBtn').disabled = false;
+}
+
+async function launchDemo() {
+  const d = await api('/demo', {method:'POST'});
+  currentScanId = d.scan_id;
+  resetDashboard();
+  switchView('dashboard');
+  startPolling();
+}
+
+function resetDashboard() {
+  document.getElementById('lsScanner').classList.remove('scanner-idle');
+  document.getElementById('lsDot').classList.remove('idle');
+  document.getElementById('lsLabel').classList.remove('idle');
+  document.getElementById('lsDot').classList.add('active');
+  document.querySelectorAll('.ls-mod .mod-icon').forEach(el => { el.className = 'mod-icon pending'; el.textContent = '○'; });
+  document.querySelectorAll('.ls-mod .mod-name').forEach(el => el.classList.remove('running'));
+}
+
+// ── POLLING ──
+function startPolling() {
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(pollScan, 800);
+  pollScan();
+}
+
+async function pollScan() {
+  if (!currentScanId) return;
+  try {
+    scanData = await api('/scan/' + currentScanId);
+    updateAll(scanData);
+    if (scanData.status === 'completed') {
+      clearInterval(pollTimer);
+      pollTimer = null;
+      document.getElementById('lsScanner').classList.add('scanner-idle');
+      document.getElementById('lsDot').classList.add('idle');
+      document.getElementById('lsLabel').classList.add('idle');
+    }
+  } catch(e) {}
+}
+
+// ── UPDATE DASHBOARD ──
+function updateAll(d) {
+  // Live scan
+  document.getElementById('lsUrl').textContent = d.target;
+  document.getElementById('lsUrl').href = d.target;
+  document.getElementById('lsStatus').textContent = d.status === 'completed' ? `Scan complete — ${d.findings.length} findings in ${d.duration}s` : `Running comprehensive scan... (${d.current_module})`;
+  document.getElementById('lsBar').style.width = d.progress + '%';
+  document.getElementById('lsPct').textContent = d.progress + '%';
+
+  // Module status
+  const ms = d.module_status || {};
+  for (const [k, st] of Object.entries(ms)) {
+    const el = document.querySelector(`.ls-mod[data-mod="${k}"] .mod-icon`);
+    const nameEl = document.querySelector(`.ls-mod[data-mod="${k}"] .mod-name`);
+    if (!el) continue;
+    el.className = 'mod-icon ' + st;
+    el.textContent = st === 'completed' ? '✓' : st === 'running' ? '◉' : '○';
+    nameEl.classList.toggle('running', st === 'running');
+    // Module panel
+    const mst = document.getElementById('modSt_' + k);
+    if (mst) {
+      mst.className = 'mod-item-status ' + st;
+      mst.innerHTML = st === 'completed' ? '<i data-lucide="check-circle" style="width:16px;height:16px;color:var(--low)"></i>' :
+                       st === 'running' ? '<i data-lucide="loader" style="width:16px;height:16px;color:var(--med)"></i>' :
+                       '<i data-lucide="circle" style="width:14px;height:14px;color:var(--tx3)"></i>';
+    }
+  }
+
+  // Summary
+  document.getElementById('ssFindings').textContent = d.findings.length;
+  document.getElementById('ssChains').textContent = d.chains.length;
+  document.getElementById('ssRequests').textContent = d.requests_sent;
+  document.getElementById('ssDuration').textContent = d.duration + 's';
+  const sv = d.severity || {};
+  document.getElementById('ssCrit').textContent = sv.critical || 0;
+  document.getElementById('ssHigh').textContent = sv.high || 0;
+  document.getElementById('ssMed').textContent = sv.medium || 0;
+  document.getElementById('ssLow').textContent = sv.low || 0;
+  document.getElementById('ssInfo').textContent = sv.info || 0;
+
+  // Donut
+  updateDonut(sv, d.findings.length);
+
+  // Fingerprint
+  if (d.fingerprint) updateFingerprint(d.fingerprint);
+
+  // Chains preview
+  if (d.chains.length) updateChainPreview(d.chains);
+  document.getElementById('chainCount').textContent = d.chains.length;
+
+  // Findings list
+  updateFindingsList(d.findings, sv);
+
+  // Activity chart
+  updateActivity(d.request_timeline, d.requests_sent);
+
+  // Logs
+  updateLogs(d.logs);
+
+  lucide.createIcons();
+}
+
+// ── DONUT ──
+function updateDonut(sv, total) {
+  if (!total) total = 1;
+  const data = [
+    {key:'critical',n:sv.critical||0,color:'var(--crit)'},
+    {key:'high',n:sv.high||0,color:'var(--high)'},
+    {key:'medium',n:sv.medium||0,color:'var(--med)'},
+    {key:'low',n:sv.low||0,color:'var(--low)'},
+    {key:'info',n:sv.info||0,color:'var(--info)'},
+  ];
+  document.getElementById('donutNum').textContent = total;
+  const circ = 2 * Math.PI * 14;
+  let offset = 0;
+  let svg = `<circle cx="18" cy="18" r="14" fill="none" stroke="var(--bg-panel2)" stroke-width="4"/>`;
+  for (const s of data) {
+    if (!s.n) continue;
+    const len = (s.n / total) * circ;
+    svg += `<circle cx="18" cy="18" r="14" fill="none" stroke="${s.color}" stroke-width="4" stroke-dasharray="${len} ${circ - len}" stroke-dashoffset="${-offset}" style="transition:all .5s"/>`;
+    offset += len;
+  }
+  document.getElementById('donutSvg').innerHTML = svg;
+  const ids = {critical:'Crit',high:'High',medium:'Med',low:'Low',info:'Info'};
+  for (const s of data) {
+    document.getElementById('dl'+ids[s.key]).textContent = s.n;
+    document.getElementById('dl'+ids[s.key]+'P').textContent = `(${total?Math.round(s.n/total*100):0}%)`;
+  }
+}
+
+// ── FINGERPRINT ──
+function updateFingerprint(fp) {
+  const icons = {CDN:'cdn',WAF:'waf','Reverse Proxy':'srv','Web Server':'srv',Framework:'fw',Language:'lang'};
+  const lucideIcons = {CDN:'cloud',WAF:'shield','Reverse Proxy':'server','Web Server':'server',Framework:'code',Language:'terminal'};
+  let html = '<div class="fp-table">';
+  for (const l of (fp.layers || [])) {
+    const cls = icons[l.label] || 'srv';
+    const ic = lucideIcons[l.label] || 'box';
+    html += `<div class="fp-row"><div class="fp-icon ${cls}"><i data-lucide="${ic}"></i></div><div class="fp-label">${esc(l.label)}</div><div class="fp-value">${esc(l.value)}</div></div>`;
+  }
+  html += '</div>';
+  html += '<div class="fp-depth"><span class="fp-depth-label">Parsing Depth</span><div class="fp-depth-bar">';
+  for (let i = 0; i < 5; i++) html += `<div class="fp-depth-seg ${i < fp.layer_count ? 'filled' : ''}"></div>`;
+  html += `</div><span class="fp-depth-num">${fp.layer_count} / 5</span></div>`;
+  document.getElementById('fpPanel').innerHTML = html;
+}
+
+// ── CHAIN PREVIEW ──
+function updateChainPreview(chains) {
+  if (!chains.length) return;
+  const c = chains[chainIndex % chains.length];
+  const steps = c.steps || [];
+  const nodeIcons = ['code','git-branch','shield-off','lock'];
+  let html = '<div class="chain-flow">';
+  steps.slice(0, 4).forEach((s, i) => {
+    if (i > 0) html += '<div class="chain-arrow">→</div>';
+    const ic = nodeIcons[i % nodeIcons.length];
+    const label = s.length > 20 ? s.substring(0, 18) + '…' : s;
+    html += `<div class="chain-node"><div class="chain-node-icon"><i data-lucide="${ic}"></i></div><div class="chain-node-label">${esc(label)}</div></div>`;
+  });
+  html += '</div>';
+  html += `<div class="chain-desc"><div class="chain-desc-text"><strong>${esc(c.name)}</strong><br>${esc(c.impact||c.description||'')}</div><span class="sev-badge ${c.severity}">${c.severity.toUpperCase()}</span></div>`;
+  html += '<div class="chain-nav">';
+  html += `<div class="arrow" onclick="chainPrev()"><i data-lucide="chevron-left" style="width:14px;height:14px"></i></div>`;
+  chains.forEach((_, i) => html += `<div class="dot ${i === chainIndex % chains.length ? 'active' : ''}" onclick="chainGo(${i})"></div>`);
+  html += `<div class="arrow" onclick="chainNext()"><i data-lucide="chevron-right" style="width:14px;height:14px"></i></div></div>`;
+  document.getElementById('chainPreview').innerHTML = html;
+}
+function chainPrev() { if (scanData) { chainIndex = (chainIndex - 1 + scanData.chains.length) % scanData.chains.length; updateChainPreview(scanData.chains); lucide.createIcons(); }}
+function chainNext() { if (scanData) { chainIndex = (chainIndex + 1) % scanData.chains.length; updateChainPreview(scanData.chains); lucide.createIcons(); }}
+function chainGo(i) { chainIndex = i; if (scanData) { updateChainPreview(scanData.chains); lucide.createIcons(); }}
+
+// ── FINDINGS ──
+function updateFindingsList(findings, sv) {
+  document.getElementById('findingsCount').textContent = findings.length;
+  document.getElementById('fAll').textContent = findings.length;
+  document.getElementById('fCrit').textContent = sv.critical || 0;
+  document.getElementById('fHigh').textContent = sv.high || 0;
+  document.getElementById('fMed').textContent = sv.medium || 0;
+  document.getElementById('fLow').textContent = sv.low || 0;
+  document.getElementById('fInfo').textContent = sv.info || 0;
+  filterFindings();
+}
+
+function setFilter(sev) {
+  activeFilter = sev;
+  document.querySelectorAll('.fp-filter').forEach(f => f.classList.toggle('active', f.dataset.sev === sev));
+  filterFindings();
+}
+
+function filterFindings() {
+  if (!scanData) return;
+  const q = (document.getElementById('findingsSearch').value || '').toLowerCase();
+  let findings = scanData.findings.slice();
+  findings.sort((a,b) => sevScore(b.severity) - sevScore(a.severity));
+  if (activeFilter !== 'all') findings = findings.filter(f => f.severity === activeFilter);
+  if (q) findings = findings.filter(f => f.title.toLowerCase().includes(q) || (f.description||'').toLowerCase().includes(q));
+  const el = document.getElementById('findingsList');
+  if (!findings.length) { el.innerHTML = '<div class="empty" style="padding:16px"><div class="desc">No findings match</div></div>'; return; }
+  let html = '';
+  findings.forEach((f, i) => {
+    const tags = (f.chain_tags || []).slice(0, 3).map(t => `<span class="finding-card-tag">${esc(t)}</span>`).join('');
+    html += `<div class="finding-card" onclick='showFinding(${scanData.findings.indexOf(f)})'>
+      <div class="finding-card-icon ${f.severity}"><i data-lucide="shield-alert"></i></div>
+      <span class="sev-badge ${f.severity}">${f.severity.toUpperCase()}</span>
+      <div class="finding-card-body"><div class="finding-card-title">${esc(f.title)}</div><div class="finding-card-tags">${tags}</div></div>
+      <span class="finding-card-num">#${i+1}</span>
+      <i data-lucide="chevron-right" class="finding-card-expand"></i>
+    </div>`;
+  });
+  el.innerHTML = html;
+  lucide.createIcons();
+}
+
+function showFinding(idx) {
+  const f = scanData.findings[idx];
+  if (!f) return;
+  let html = `<div class="modal-close" onclick="closeModal()"><i data-lucide="x" style="width:18px;height:18px"></i></div>`;
+  html += `<h2>${esc(f.title)}</h2>`;
+  html += `<div class="meta"><span class="sev-badge ${f.severity}">${f.severity.toUpperCase()}</span><span class="finding-card-tag">${esc(f.category)}</span><span class="finding-card-tag">${esc(f.module)}</span></div>`;
+  html += `<p style="font-size:13px;color:var(--tx2);line-height:1.6">${esc(f.description)}</p>`;
+  if (f.evidence) { html += `<div class="section-label">Evidence</div><div class="evidence-block">${esc(f.evidence)}</div>`; }
+  if (f.differential) {
+    html += `<div class="section-label">Parser Differential</div><p style="font-size:12px;color:var(--cyan)">${esc(f.differential.probe)}</p>`;
+    if (f.differential.layers && f.differential.layers.length) {
+      html += '<table class="diff-table"><thead><tr><th>Layer</th><th>Interpretation</th><th>Status</th></tr></thead><tbody>';
+      f.differential.layers.forEach(l => {
+        const sc = l.status ? (l.status < 400 ? 'var(--low)' : 'var(--crit)') : 'var(--tx3)';
+        html += `<tr><td style="color:var(--cyan);font-family:var(--mono)">${esc(l.name)}</td><td>${esc(l.interpretation)}</td><td style="color:${sc};font-family:var(--mono)">${l.status||'—'}</td></tr>`;
+      });
+      html += '</tbody></table>';
+    }
+    if (f.differential.exploitable) html += '<p style="color:var(--crit);font-family:var(--mono);font-size:12px;margin-top:8px">⚡ Exploitable mismatch detected</p>';
+    if (f.differential.raw_request) html += `<div class="section-label">Raw Request</div><div class="evidence-block">${esc(f.differential.raw_request)}</div>`;
+  }
+  if (f.chain_tags && f.chain_tags.length) {
+    html += '<div class="section-label">Chain Tags</div><div style="display:flex;gap:4px;flex-wrap:wrap">' + f.chain_tags.map(t => `<span class="finding-card-tag">#${esc(t)}</span>`).join('') + '</div>';
+  }
+  if (f.remediation) html += `<div class="section-label">Remediation</div><div class="fix">${esc(f.remediation)}</div>`;
+  document.getElementById('modalContent').innerHTML = html;
+  document.getElementById('modalOverlay').classList.add('open');
+  lucide.createIcons();
+}
+
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// ── ACTIVITY CHART ──
+function updateActivity(timeline, total) {
+  document.getElementById('actTotal').textContent = total;
+  if (!timeline || !timeline.length) return;
+  const maxT = Math.max(...timeline.map(p => p.t), 1);
+  const buckets = 20;
+  const counts = new Array(buckets).fill(0);
+  let prev = 0;
+  for (const p of timeline) {
+    const idx = Math.min(Math.floor((p.t / maxT) * buckets), buckets - 1);
+    counts[idx] += p.n - prev;
+    prev = p.n;
+  }
+  const maxC = Math.max(...counts, 1);
+  let html = '';
+  counts.forEach((c, i) => {
+    const h = Math.max(2, (c / maxC) * 100);
+    const color = i % 2 === 0 ? 'var(--purple)' : 'var(--neon)';
+    html += `<div class="activity-bar" style="height:${h}%;background:${color};opacity:${c ? .7 : .15}"></div>`;
+  });
+  document.getElementById('actChart').innerHTML = html;
+  document.getElementById('actMid').textContent = Math.round(maxT / 2) + 's';
+  document.getElementById('actEnd').textContent = Math.round(maxT) + 's';
+}
+
+// ── LOGS ──
+function updateLogs(logs) {
+  if (!logs || !logs.length) return;
+  const el = document.getElementById('logsContainer');
+  const wasAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 30;
+  let html = '';
+  logs.forEach(l => {
+    const ts = formatTime(l.time);
+    const cls = l.type === 'finding' ? 'finding' : l.type === 'error' ? 'error' : l.type === 'module' ? 'module' : '';
+    html += `<div class="log-line ${cls}"><span class="ts">[${ts}]</span> ${esc(l.msg)}</div>`;
+  });
+  el.innerHTML = html;
+  if (wasAtBottom) el.scrollTop = el.scrollHeight;
+}
+
+function formatTime(secs) {
+  const m = Math.floor(secs / 60);
+  const s = Math.floor(secs % 60);
+  const ms = Math.floor((secs % 1) * 100);
+  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(ms).padStart(2,'0')}`;
+}
+
+// ── HISTORY ──
+async function loadHistory() {
+  const scans = await api('/scans');
+  const el = document.getElementById('historyBody');
+  if (!scans.length) { el.innerHTML = '<tr><td colspan="8" class="empty"><div class="desc">No scans yet</div></td></tr>'; return; }
+  el.innerHTML = scans.map(s => {
+    const st = s.status === 'completed' ? '<span class="sev-badge low">completed</span>' : '<span class="sev-badge info">running</span>';
+    return `<tr>
+      <td><span class="scan-link" onclick="loadScan('${s.id}')">${s.id}</span></td>
+      <td>${esc(s.target)}</td><td>${st}</td>
+      <td>${s.findings_count}</td><td>${s.chains_count}</td>
+      <td style="color:${s.critical?'var(--crit)':'var(--tx3)'}">${s.critical}</td>
+      <td style="color:${s.high?'var(--high)':'var(--tx3)'}">${s.high}</td>
+      <td style="font-family:var(--mono)">${s.duration}s</td>
+    </tr>`;
+  }).join('');
+}
+
+async function loadScan(id) {
+  currentScanId = id;
+  scanData = await api('/scan/' + id);
+  updateAll(scanData);
+  switchView('dashboard');
+  if (scanData.status === 'running') startPolling();
+}
+
+// ── ALL FINDINGS VIEW ──
+function renderAllFindings() {
+  if (!scanData) return;
+  const el = document.getElementById('allFindingsList');
+  const findings = scanData.findings.slice().sort((a,b) => sevScore(b.severity) - sevScore(a.severity));
+  if (!findings.length) { el.innerHTML = '<div class="empty"><div class="desc">No findings</div></div>'; return; }
+  el.innerHTML = findings.map((f, i) => `
+    <div class="finding-card" onclick='showFinding(${scanData.findings.indexOf(f)})' style="margin-bottom:8px">
+      <div class="finding-card-icon ${f.severity}"><i data-lucide="shield-alert"></i></div>
+      <span class="sev-badge ${f.severity}">${f.severity.toUpperCase()}</span>
+      <div class="finding-card-body">
+        <div class="finding-card-title">${esc(f.title)}</div>
+        <div style="font-size:11px;color:var(--tx3);margin-top:2px">${esc(f.description).substring(0,120)}...</div>
+      </div>
+      <span class="finding-card-num">#${i+1}</span>
+      <i data-lucide="chevron-right" class="finding-card-expand"></i>
+    </div>
+  `).join('');
+  lucide.createIcons();
+}
+
+// ── ALL CHAINS VIEW ──
+function renderAllChains() {
+  if (!scanData) return;
+  const el = document.getElementById('allChainsList');
+  if (!scanData.chains.length) { el.innerHTML = '<div class="empty"><div class="desc">No chains discovered</div></div>'; return; }
+  el.innerHTML = scanData.chains.map((c, i) => `
+    <div class="chain-detail fade-in">
+      <div class="ch-header">
+        <i data-lucide="git-branch" style="width:18px;height:18px;color:var(--purple)"></i>
+        <span class="ch-name">${esc(c.name)}</span>
+        <span class="sev-badge ${c.severity}">${c.severity.toUpperCase()}</span>
+      </div>
+      <div class="ch-impact">${esc(c.impact || c.description || '')}</div>
+      <ol class="ch-steps">${(c.steps||[]).map(s => `<li class="ch-step">${esc(s)}</li>`).join('')}</ol>
+      <div style="font-family:var(--mono);font-size:11px;color:var(--tx3);margin-top:8px">${c.finding_count} linked finding(s)</div>
+    </div>
+  `).join('');
+  lucide.createIcons();
+}
+
+// ── EXPORT ──
+function exportReport(fmt) {
+  if (!scanData) { alert('No scan data to export'); return; }
+  if (fmt === 'json') {
+    const blob = new Blob([JSON.stringify(scanData, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'phantom_report.json'; a.click();
+    URL.revokeObjectURL(url);
+    return;
+  }
+  const d = scanData;
+  const sev = d.severity || {};
+  const fp = d.fingerprint;
+  const sevColor = s => ({critical:'#FF334F',high:'#FF334F',medium:'#FFA126',low:'#20D88A',info:'#398BFF'})[s]||'#888';
+
+  let fpHtml = '';
+  if (fp && fp.layers) {
+    fpHtml = `<h2>Stack Fingerprint — Parsing Layers</h2>
+    <table><thead><tr><th>Layer</th><th>Technology</th></tr></thead><tbody>
+    ${fp.layers.map(l => `<tr><td>${esc(l.label)}</td><td>${esc(l.value||'Unknown')}</td></tr>`).join('')}
+    </tbody></table>
+    <p style="margin-top:10px;color:#B44CFF;font-weight:600">Parsing Depth: ${fp.layer_count||fp.layers.length}/5</p>`;
+    if (fp.interesting_headers && Object.keys(fp.interesting_headers).length) {
+      fpHtml += `<div class="note">Notable Headers: ${Object.entries(fp.interesting_headers).map(([k,v])=>`<code>${esc(k)}: ${esc(v)}</code>`).join(', ')}</div>`;
+    }
+  }
+
+  let findingsHtml = (d.findings||[]).sort((a,b) => sevScore(b.severity)-sevScore(a.severity)).map((f,i) => {
+    let diffHtml = '';
+    if (f.differential) {
+      const df = f.differential;
+      diffHtml = `<div class="diff-box">
+        <div class="diff-title">${esc(df.probe)}</div>
+        <table class="diff-tbl"><thead><tr><th>Layer</th><th>Interpretation</th><th>Status</th></tr></thead><tbody>
+        ${(df.layers||[]).map(l => `<tr><td>${esc(l.name)}</td><td>${esc(l.interpretation)}</td><td><code>${l.status}</code></td></tr>`).join('')}
+        </tbody></table>
+        ${df.exploitable ? '<div class="exploitable">⚡ Exploitable mismatch detected</div>' : ''}
+        ${df.raw_request ? `<pre class="raw">${esc(df.raw_request)}</pre>` : ''}
+      </div>`;
+    }
+    return `<div class="finding">
+      <div class="f-head">
+        <span class="badge" style="background:${sevColor(f.severity)};color:${f.severity==='medium'?'#000':'#fff'}">${(f.severity||'').toUpperCase()}</span>
+        <span class="f-num">#${i+1}</span>
+        <span class="f-title">${esc(f.title)}</span>
+        <span class="f-cat">${esc(f.category)}</span>
+      </div>
+      <p class="f-desc">${esc(f.description)}</p>
+      ${diffHtml}
+      <pre class="evidence">${esc(f.evidence)}</pre>
+      ${f.chain_tags && f.chain_tags.length ? `<div class="tags">${f.chain_tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>` : ''}
+      ${f.remediation ? `<div class="fix"><strong>Fix:</strong> ${esc(f.remediation)}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  let chainsHtml = (d.chains||[]).map((c,i) => `<div class="chain">
+    <div class="ch-head">
+      <span class="badge" style="background:${sevColor(c.severity)};color:${c.severity==='medium'?'#000':'#fff'}">${(c.severity||'').toUpperCase()}</span>
+      <span class="ch-name">Chain #${i+1}: ${esc(c.name)}</span>
+    </div>
+    <p class="ch-desc">${esc(c.description)}</p>
+    <ol class="ch-steps">${(c.steps||[]).map(s => `<li>${esc(s)}</li>`).join('')}</ol>
+    <div class="ch-impact"><strong>Impact:</strong> ${esc(c.impact)}</div>
+    <div class="ch-meta">${c.finding_count} linked finding(s)</div>
+  </div>`).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PHANTOM Report — ${esc(d.target)}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#070711;--panel:#101020;--panel2:#151529;--purple:#9333FF;--neon:#B44CFF;--cyan:#22D3EE;
+--crit:#FF334F;--high:#FF334F;--med:#FFA126;--low:#20D88A;--info:#398BFF;
+--tx:#F4F1FF;--tx2:#9B9BB5;--tx3:#5a5a78;--border:rgba(147,51,255,.18);--mono:'JetBrains Mono',monospace;--sans:'Inter',sans-serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--tx);font-family:var(--sans);padding:0;min-height:100vh}
+::selection{background:var(--purple);color:#fff}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(147,51,255,.3);border-radius:3px}
+
+.hero{background:linear-gradient(135deg,#0c0c1a 0%,#13082a 50%,#0c0c1a 100%);border-bottom:1px solid var(--border);padding:48px 0;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:50%;left:50%;width:600px;height:600px;transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(147,51,255,.12),transparent 70%);pointer-events:none}
+.hero h1{font-family:var(--mono);font-size:36px;font-weight:800;letter-spacing:6px;color:var(--tx);position:relative}
+.hero .sub{font-size:13px;color:var(--tx3);margin-top:4px;letter-spacing:2px;position:relative}
+.hero .target{font-family:var(--mono);font-size:16px;color:var(--neon);margin-top:16px;position:relative}
+.hero .meta{color:var(--tx2);font-size:13px;margin-top:6px;position:relative}
+
+.container{max-width:960px;margin:0 auto;padding:32px 24px 64px}
+h2{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--neon);letter-spacing:2px;margin:40px 0 20px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin:24px 0}
+.stat{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center}
+.stat .val{font-family:var(--mono);font-size:26px;font-weight:800}
+.stat .lbl{font-size:11px;color:var(--tx2);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+
+.sev-bar{display:flex;gap:8px;margin:16px 0 0;flex-wrap:wrap}
+.sev-item{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px 16px;display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:13px}
+.sev-dot{width:10px;height:10px;border-radius:50%}
+
+table{width:100%;border-collapse:collapse;margin:12px 0}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid rgba(147,51,255,.1)}
+th{font-family:var(--mono);font-size:12px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px;background:var(--panel)}
+td{font-size:13px;color:var(--tx)}
+tr:hover td{background:rgba(147,51,255,.04)}
+.note{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-top:12px;font-size:13px;color:var(--tx2)}
+.note code{background:rgba(147,51,255,.15);padding:2px 6px;border-radius:4px;font-family:var(--mono);font-size:12px;color:var(--neon)}
+
+.finding{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:14px}
+.f-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.f-num{font-family:var(--mono);font-size:12px;color:var(--tx3)}
+.f-title{font-weight:600;font-size:14px;flex:1}
+.f-cat{font-size:12px;color:var(--tx3);margin-left:auto}
+.f-desc{font-size:13px;color:var(--tx2);line-height:1.6;margin-bottom:10px}
+.badge{display:inline-block;padding:2px 10px;border-radius:4px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:1px}
+.evidence{background:#0a0a14;border:1px solid var(--border);border-radius:6px;padding:12px 16px;font-family:var(--mono);font-size:12px;color:var(--tx2);overflow-x:auto;white-space:pre-wrap;margin:8px 0}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.tag{background:rgba(147,51,255,.15);color:var(--neon);padding:2px 8px;border-radius:4px;font-family:var(--mono);font-size:11px}
+.fix{background:rgba(32,216,138,.08);border:1px solid rgba(32,216,138,.2);border-radius:6px;padding:10px 14px;margin-top:10px;font-size:13px;color:var(--low)}
+
+.diff-box{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:14px;margin:10px 0}
+.diff-title{font-family:var(--mono);font-size:12px;color:var(--cyan);margin-bottom:8px}
+.diff-tbl{margin:0}.diff-tbl th{font-size:11px}.diff-tbl td{font-size:12px}
+.exploitable{color:var(--crit);font-family:var(--mono);font-size:12px;font-weight:600;margin-top:8px}
+.raw{background:#08080f;font-size:11px;color:var(--tx3);max-height:120px;overflow:auto}
+
+.chain{background:var(--panel);border:1px solid var(--crit);border-radius:10px;padding:20px;margin-bottom:14px}
+.ch-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.ch-name{font-weight:700;font-size:15px}
+.ch-desc{font-size:13px;color:var(--tx2);margin-bottom:10px}
+.ch-steps{padding-left:20px;margin:10px 0}.ch-steps li{font-size:13px;color:var(--tx);margin:4px 0;line-height:1.5}
+.ch-impact{color:var(--crit);font-size:13px;margin-top:10px}
+.ch-meta{font-family:var(--mono);font-size:11px;color:var(--tx3);margin-top:6px}
+
+.footer{text-align:center;padding:40px 0 24px;color:var(--tx3);font-size:12px;font-family:var(--mono)}
+.footer span{color:var(--neon)}
+</style></head><body>
+<div class="hero">
+  <h1>PHANTOM</h1>
+  <div class="sub">Inter-Layer Semantic Gap Exploitation Framework</div>
+  <div class="target">${esc(d.target)}</div>
+  <div class="meta">${new Date(d.started*1000).toLocaleString()} · ${d.duration}s · ${d.requests_sent} requests</div>
+</div>
+<div class="container">
+  <div class="stats">
+    <div class="stat"><div class="val" style="color:var(--cyan)">${(d.findings||[]).length}</div><div class="lbl">Findings</div></div>
+    <div class="stat"><div class="val" style="color:var(--crit)">${sev.critical||0}</div><div class="lbl">Critical</div></div>
+    <div class="stat"><div class="val" style="color:var(--crit)">${sev.high||0}</div><div class="lbl">High</div></div>
+    <div class="stat"><div class="val" style="color:var(--med)">${sev.medium||0}</div><div class="lbl">Medium</div></div>
+    <div class="stat"><div class="val" style="color:var(--low)">${sev.low||0}</div><div class="lbl">Low</div></div>
+    <div class="stat"><div class="val" style="color:var(--neon)">${(d.chains||[]).length}</div><div class="lbl">Chains</div></div>
+  </div>
+  <div class="sev-bar">
+    ${sev.critical ? `<div class="sev-item"><div class="sev-dot" style="background:var(--crit)"></div>${sev.critical} Critical</div>` : ''}
+    ${sev.high ? `<div class="sev-item"><div class="sev-dot" style="background:var(--crit)"></div>${sev.high} High</div>` : ''}
+    ${sev.medium ? `<div class="sev-item"><div class="sev-dot" style="background:var(--med)"></div>${sev.medium} Medium</div>` : ''}
+    ${sev.low ? `<div class="sev-item"><div class="sev-dot" style="background:var(--low)"></div>${sev.low} Low</div>` : ''}
+    ${sev.info ? `<div class="sev-item"><div class="sev-dot" style="background:var(--info)"></div>${sev.info} Info</div>` : ''}
+  </div>
+  ${fpHtml ? `${fpHtml}` : ''}
+  ${chainsHtml ? `<h2>ATTACK CHAINS</h2>${chainsHtml}` : ''}
+  <h2>FINDINGS</h2>
+  ${findingsHtml || '<p style="color:var(--tx3)">No findings.</p>'}
+</div>
+<div class="footer">PHANTOM v1.0.0 · Report generated ${new Date().toLocaleString()} · <span>Inter-Layer Semantic Gap Exploitation Framework</span></div>
+</body></html>`;
+
+  const blob = new Blob([html], {type:'text/html'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = `phantom_report_${esc(d.target).replace(/[^a-z0-9]/gi,'_')}.html`; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── UTILS ──
+function sevScore(s) { return {info:0,low:1,medium:2,high:3,critical:4}[s]||0; }
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ── INIT ──
+lucide.createIcons();
+loadHistory();
+
+// Enter key on scan input
+document.getElementById('scanTarget').addEventListener('keydown', e => { if (e.key === 'Enter') launchScan(); });
+</script>
+</body>
+</html>

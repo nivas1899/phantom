@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PHANTOM Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#060610;--surface:#0c0c1d;--surface2:#111128;--border:#1a1a3e;
+  --fg:#e0e0f0;--dim:#6a6a8e;--accent:#00e5ff;--accent2:#7c4dff;
+  --crit:#ff1744;--high:#ff5252;--med:#ffc107;--low:#4caf50;--info:#2196f3;
+  --glow:0 0 20px rgba(0,229,255,.15);
+  --font:'Segoe UI',system-ui,-apple-system,sans-serif;
+  --mono:'Fira Code','Cascadia Code','JetBrains Mono',monospace;
+}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);overflow-x:hidden}
+a{color:var(--accent);text-decoration:none}
+
+/* ── Animated background grid ── */
+.grid-bg{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(0,229,255,.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,229,255,.03) 1px,transparent 1px);
+  background-size:60px 60px;
+  animation:gridPulse 4s ease-in-out infinite alternate}
+@keyframes gridPulse{0%{opacity:.4}100%{opacity:.8}}
+
+/* ── Scan line animation ── */
+.scan-line{position:fixed;top:0;left:0;right:0;height:2px;z-index:100;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);
+  animation:scanLine 3s linear infinite}
+@keyframes scanLine{0%{transform:translateY(-2px)}100%{transform:translateY(100vh)}}
+
+.container{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:1.5rem}
+
+/* ── Header ── */
+.header{text-align:center;padding:2rem 0 1rem;position:relative}
+.header h1{font-size:2.8rem;font-weight:800;letter-spacing:.15em;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  text-shadow:var(--glow);filter:drop-shadow(0 0 30px rgba(0,229,255,.3))}
+.header .subtitle{color:var(--dim);font-size:.9rem;margin-top:.3rem;letter-spacing:.2em;text-transform:uppercase}
+.header .target-pill{display:inline-block;margin-top:1rem;padding:.4rem 1.5rem;
+  border:1px solid var(--accent);border-radius:20px;font-family:var(--mono);
+  font-size:.85rem;color:var(--accent);background:rgba(0,229,255,.05)}
+.header .meta{color:var(--dim);font-size:.8rem;margin-top:.5rem}
+
+/* ── Stats Row ── */
+.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:1rem;margin:2rem 0}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:1.2rem;text-align:center;position:relative;overflow:hidden;
+  transition:transform .2s,border-color .2s}
+.stat-card:hover{transform:translateY(-2px);border-color:var(--accent)}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.stat-val{font-size:2rem;font-weight:800;font-family:var(--mono)}
+.stat-label{color:var(--dim);font-size:.75rem;text-transform:uppercase;letter-spacing:.1em;margin-top:.25rem}
+.stat-card.critical .stat-val{color:var(--crit)}
+.stat-card.high .stat-val{color:var(--high)}
+.stat-card.chains .stat-val{color:var(--accent2)}
+
+/* ── Panel ── */
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:1.5rem;margin-bottom:1.5rem}
+.panel-title{font-size:1rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--accent);margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}
+.panel-title::before{content:'';display:inline-block;width:4px;height:1em;
+  background:var(--accent);border-radius:2px}
+
+/* ── Main Grid ── */
+.main-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+
+/* ── Chart containers ── */
+.chart-container{position:relative;height:280px}
+
+/* ── Fingerprint Layers ── */
+.layer-stack{display:flex;flex-direction:column;gap:.5rem}
+.layer-item{display:flex;align-items:center;gap:.75rem;padding:.6rem 1rem;
+  background:var(--surface2);border:1px solid var(--border);border-radius:8px;
+  font-size:.85rem;transition:border-color .2s}
+.layer-item:hover{border-color:var(--accent)}
+.layer-icon{width:8px;height:8px;border-radius:50%;background:var(--accent);
+  box-shadow:0 0 8px var(--accent)}
+.layer-label{color:var(--dim);min-width:100px}
+.layer-value{color:var(--fg);font-weight:600}
+.layer-bar{position:relative;height:6px;flex:1;background:var(--surface);
+  border-radius:3px;overflow:hidden;min-width:80px}
+.layer-bar-fill{height:100%;border-radius:3px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  animation:barFill 1s ease-out forwards}
+@keyframes barFill{from{width:0}}
+
+/* ── Attack Chains ── */
+.chain-card{background:var(--surface2);border:1px solid var(--crit);border-radius:10px;
+  padding:1.2rem;margin-bottom:1rem;position:relative;overflow:hidden}
+.chain-card::before{content:'';position:absolute;top:0;left:0;bottom:0;width:4px;
+  background:linear-gradient(180deg,var(--crit),var(--accent2))}
+.chain-name{font-weight:700;font-size:1rem;margin-bottom:.5rem;padding-left:.75rem}
+.chain-severity{display:inline-block;padding:.15rem .6rem;border-radius:4px;
+  font-size:.7rem;font-weight:700;text-transform:uppercase;margin-bottom:.5rem;margin-left:.75rem}
+.chain-steps{padding-left:2rem;margin:.5rem 0}
+.chain-steps li{color:var(--dim);font-size:.85rem;margin:.25rem 0;position:relative}
+.chain-steps li::marker{color:var(--accent)}
+.chain-impact{font-size:.85rem;color:var(--crit);padding-left:.75rem;margin-top:.5rem;
+  border-top:1px solid var(--border);padding-top:.5rem;font-style:italic}
+
+/* ── Findings ── */
+.finding-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  margin-bottom:.75rem;overflow:hidden;transition:border-color .2s}
+.finding-card:hover{border-color:var(--accent)}
+.finding-header{display:flex;align-items:center;gap:.75rem;padding:1rem 1.25rem;
+  cursor:pointer;user-select:none}
+.finding-header:hover{background:rgba(0,229,255,.03)}
+.severity-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.severity-dot.critical{background:var(--crit);box-shadow:0 0 8px var(--crit)}
+.severity-dot.high{background:var(--high);box-shadow:0 0 8px var(--high)}
+.severity-dot.medium{background:var(--med);box-shadow:0 0 6px var(--med)}
+.severity-dot.low{background:var(--low)}
+.severity-dot.info{background:var(--info)}
+.finding-title{font-weight:600;font-size:.9rem;flex:1}
+.finding-sev{font-size:.7rem;font-weight:700;text-transform:uppercase;padding:.2rem .5rem;
+  border-radius:4px;flex-shrink:0}
+.finding-sev.critical{background:var(--crit);color:#fff}
+.finding-sev.high{background:var(--high);color:#fff}
+.finding-sev.medium{background:var(--med);color:#000}
+.finding-sev.low{background:var(--low);color:#fff}
+.finding-sev.info{background:var(--info);color:#fff}
+.finding-arrow{color:var(--dim);transition:transform .2s;flex-shrink:0}
+.finding-card.open .finding-arrow{transform:rotate(90deg)}
+.finding-body{display:none;padding:0 1.25rem 1.25rem;border-top:1px solid var(--border)}
+.finding-card.open .finding-body{display:block}
+.finding-desc{color:var(--dim);font-size:.85rem;margin-top:.75rem;line-height:1.5}
+.finding-evidence{background:var(--bg);border:1px solid var(--border);border-radius:6px;
+  padding:.75rem;font-family:var(--mono);font-size:.8rem;margin-top:.75rem;
+  overflow-x:auto;white-space:pre-wrap;color:var(--accent)}
+.finding-meta{display:flex;gap:1rem;margin-top:.75rem;flex-wrap:wrap}
+.finding-tag{font-size:.7rem;padding:.15rem .5rem;border-radius:10px;
+  background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.2);color:var(--accent)}
+.finding-module{font-size:.75rem;color:var(--dim)}
+.finding-remediation{font-size:.85rem;color:var(--low);margin-top:.5rem;font-style:italic}
+
+/* ── Diff Table ── */
+.diff-table{width:100%;border-collapse:collapse;margin-top:.75rem;font-size:.8rem}
+.diff-table th{text-align:left;color:var(--accent);padding:.4rem .6rem;
+  border-bottom:1px solid var(--border);font-weight:600}
+.diff-table td{padding:.4rem .6rem;border-bottom:1px solid rgba(255,255,255,.05)}
+.diff-table .status-ok{color:var(--low)}
+.diff-table .status-bad{color:var(--crit)}
+.diff-exploitable{color:var(--crit);font-weight:700;margin-top:.5rem;font-size:.85rem}
+
+/* ── Section title ── */
+.section-title{font-size:1.3rem;font-weight:700;margin:2.5rem 0 1rem;
+  padding-bottom:.5rem;border-bottom:2px solid var(--border);
+  display:flex;align-items:center;gap:.75rem}
+.section-title .icon{font-size:1.5rem}
+
+/* ── Responsive ── */
+@media(max-width:900px){
+  .stats{grid-template-columns:repeat(3,1fr)}
+  .main-grid{grid-template-columns:1fr}
+}
+@media(max-width:600px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .container{padding:1rem}
+  .header h1{font-size:1.8rem}
+}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="scan-line"></div>
+
+<div class="container">
+
+<!-- Header -->
+<div class="header">
+  <h1>PHANTOM</h1>
+  <div class="subtitle">Inter-Layer Semantic Gap Exploitation Framework</div>
+  <div class="target-pill">https://target-app.com</div>
+  <div class="meta">Scanned 2026-11-13 20:57:29 &middot; 32.7s &middot; 247 requests</div>
+</div>
+
+<!-- Stats -->
+<div class="stats">
+  <div class="stat-card"><div class="stat-val" id="anim-total">9</div><div class="stat-label">Findings</div></div>
+  <div class="stat-card critical"><div class="stat-val" id="anim-crit">1</div><div class="stat-label">Critical</div></div>
+  <div class="stat-card high"><div class="stat-val" id="anim-high">4</div><div class="stat-label">High</div></div>
+  <div class="stat-card"><div class="stat-val" style="color:var(--med)" id="anim-med">2</div><div class="stat-label">Medium</div></div>
+  <div class="stat-card"><div class="stat-val" style="color:var(--low)" id="anim-low">1</div><div class="stat-label">Low / Info</div></div>
+  <div class="stat-card chains"><div class="stat-val" id="anim-chains">6</div><div class="stat-label">Attack Chains</div></div>
+</div>
+
+<!-- Main Grid -->
+<div class="main-grid">
+  <!-- Severity Chart -->
+  <div class="panel">
+    <div class="panel-title">Severity Distribution</div>
+    <div class="chart-container"><canvas id="sevChart"></canvas></div>
+  </div>
+  <!-- Category Chart -->
+  <div class="panel">
+    <div class="panel-title">Finding Categories</div>
+    <div class="chart-container"><canvas id="catChart"></canvas></div>
+  </div>
+</div>
+
+<!-- Fingerprint -->
+<div class="panel">
+  <div class="panel-title">Stack Fingerprint — Parsing Layers</div>
+  <div class="layer-stack" id="layerStack"></div>
+</div>
+
+<!-- Attack Chains -->
+<div id="chainsSection"></div>
+
+<!-- Findings -->
+<div class="section-title"><span class="icon">&#9670;</span> All Findings</div>
+<div id="findingsContainer"></div>
+
+</div><!-- /container -->
+
+<script>
+const findings = [{"title": "CL.TE HTTP Request Smuggling", "category": "HTTP Request Smuggling", "severity": "critical", "description": "The front-end (Cloudflare) uses Content-Length while the back-end (Gunicorn) uses Transfer-Encoding. An attacker can smuggle a request prefix that poisons the next user's request, enabling credential theft, cache poisoning, and request hijacking.", "evidence": "Fast probe:    48ms   (normal round-trip)\nSmuggle probe: 10,241ms (back-end waited for chunk terminator)\nTiming ratio:  213x \u2014 confirms CL.TE desync", "module": "smuggling", "chainable": true, "chain_tags": ["smuggling", "desync", "cl_te"], "remediation": "Configure the CDN/proxy to normalize Transfer-Encoding or reject ambiguous requests.", "has_differential": true, "differential": {"probe": "CL.TE desync: Content-Length vs Transfer-Encoding", "layers": [{"name": "Cloudflare CDN", "interpretation": "Uses Content-Length \u2014 forwards 6 bytes", "status": 200}, {"name": "Nginx Proxy", "interpretation": "Passes through unchanged", "status": 200}, {"name": "Gunicorn Backend", "interpretation": "Uses Transfer-Encoding \u2014 waits for chunk end", "status": 0}], "exploitable": true}}, {"title": "Double-encoding bypass on /admin", "category": "Encoding Bypass", "severity": "high", "description": "Single URL-encoding of /admin returns 403 (blocked by WAF), but double-encoding returns 200. The Cloudflare WAF decodes once and sees '%2fadmin' (benign), while Django decodes again and serves /admin.", "evidence": "Single:  GET /%2fadmin       \u2192 403 Forbidden\nDouble:  GET /%252fadmin     \u2192 200 OK\nWAF sees '%2fadmin', backend resolves to '/admin'", "module": "differential", "chainable": true, "chain_tags": ["acl_bypass", "double_encode", "waf_bypass", "encoding_mismatch"], "remediation": "Reject double-encoded URLs at the edge. Normalize before routing.", "has_differential": true, "differential": {"probe": "Double-encoding: WAF decodes once, backend decodes twice", "layers": [{"name": "Cloudflare WAF", "interpretation": "Decodes once \u2192 sees '%2fadmin' \u2192 ALLOW", "status": 200}, {"name": "Django Backend", "interpretation": "Decodes twice \u2192 resolves '/admin' \u2192 serves page", "status": 200}], "exploitable": true}}, {"title": "Cache poisoning via X-Forwarded-Host", "category": "Cache Poisoning", "severity": "high", "description": "The X-Forwarded-Host header is reflected in the response body (inside <link> and <script> tags) but is NOT included in the cache key. Poisoning one response serves malicious assets to every subsequent visitor.", "evidence": "Injected:  X-Forwarded-Host: evil.com\nReflected: <script src=\"https://evil.com/static/app.js\">\nCache:     CF-Cache-Status: HIT (poisoned response cached)", "module": "confusion", "chainable": true, "chain_tags": ["cache_poison", "xss_vector", "host_injection"], "remediation": "", "has_differential": true, "differential": {"probe": "Cache key excludes X-Forwarded-Host \u2014 unkeyed input reflected", "layers": [{"name": "Cloudflare Cache", "interpretation": "Ignores X-Forwarded-Host in key \u2192 caches response", "status": 200}, {"name": "Django Backend", "interpretation": "Reflects X-Forwarded-Host in HTML assets", "status": 200}], "exploitable": true}}, {"title": "Path override via X-Original-URL", "category": "Header Injection", "severity": "high", "description": "The backend honors X-Original-URL to rewrite the request path. An attacker routes through '/' (allowed by Nginx ACL) while X-Original-URL: /admin/users reaches the admin panel.", "evidence": "GET /                            \u2192 200 (public)\nGET / + X-Original-URL: /admin   \u2192 200 (admin panel!)\nGET /admin (direct)              \u2192 403 (blocked by proxy)", "module": "differential", "chainable": true, "chain_tags": ["acl_bypass", "header_override"], "remediation": "", "has_differential": true, "differential": {"probe": "Nginx routes to '/', Django serves '/admin' via header override", "layers": [{"name": "Nginx Proxy", "interpretation": "Routes based on URL path: '/' \u2192 ALLOW", "status": 200}, {"name": "Django Backend", "interpretation": "Uses X-Original-URL: '/admin' \u2192 serves admin", "status": 200}], "exploitable": true}}, {"title": "CORS allows arbitrary origins with credentials", "category": "Authorization Bypass", "severity": "high", "description": "The server reflects any Origin in Access-Control-Allow-Origin with Allow-Credentials: true. An attacker on evil.com can make authenticated API requests and steal user data.", "evidence": "Origin: https://evil.com\nAccess-Control-Allow-Origin: https://evil.com\nAccess-Control-Allow-Credentials: true", "module": "header", "chainable": true, "chain_tags": ["cors", "credential_theft"], "remediation": "", "has_differential": false, "differential": null}, {"title": "Hop-by-hop stripping of Authorization header", "category": "Header Injection", "severity": "medium", "description": "Listing 'Authorization' in the Connection header causes Nginx to strip it before forwarding. Backend sees an unauthenticated request, falling back to default/anonymous access.", "evidence": "Connection: close, Authorization\nBaseline (with auth):    200 OK\nStripped (no auth):      200 OK (anonymous access granted!)", "module": "confusion", "chainable": true, "chain_tags": ["hop_by_hop", "auth_bypass"], "remediation": "", "has_differential": false, "differential": null}, {"title": "HTTP Parameter Pollution accepted", "category": "Parser Differential", "severity": "medium", "description": "Duplicate query parameters produce different behavior. Cloudflare WAF inspects the first 'role=user', while Django uses the last 'role=admin' \u2014 enabling privilege escalation.", "evidence": "?role=user              \u2192 200 (normal user view)\n?role=user&role=admin   \u2192 200 (admin view!)\nWAF checks first, backend uses last", "module": "differential", "chainable": true, "chain_tags": ["hpp", "waf_bypass"], "remediation": "", "has_differential": true, "differential": {"probe": "HPP: Cloudflare inspects first param, Django uses last", "layers": [{"name": "Cloudflare WAF", "interpretation": "Inspects role=user \u2192 ALLOW", "status": 200}, {"name": "Django Backend", "interpretation": "Uses role=admin (last wins)", "status": 200}], "exploitable": true}}, {"title": "Verbose technology disclosure via headers", "category": "Information Disclosure", "severity": "low", "description": "The server exposes technology stack details in response headers.", "evidence": "Server: gunicorn/21.2.0\nX-Powered-By: Django 4.2\nX-Backend-Server: api-prod-east-02", "module": "fingerprint", "chainable": true, "chain_tags": ["info_leak", "version_disclosure"], "remediation": "Remove or obfuscate version-disclosing headers in production.", "has_differential": false, "differential": null}, {"title": "Multi-layer parsing stack detected (5 layers)", "category": "Information Disclosure", "severity": "info", "description": "Detected 5 distinct parsing layers. More layers exponentially increase parser differential probability. This stack is a high-value target for inter-layer exploitation.", "evidence": "Layer 1: Cloudflare CDN\nLayer 2: Cloudflare WAF\nLayer 3: Nginx 1.25.3 (Reverse Proxy)\nLayer 4: Gunicorn 21.2.0 (Web Server)\nLayer 5: Django 4.2 (Framework)", "module": "fingerprint", "chainable": false, "chain_tags": [], "remediation": "", "has_differential": false, "differential": null}];
+const chains = [{"name": "WAF Bypass \u2192 Backend Exploitation", "severity": "critical", "description": "Chain of 3 findings", "impact": "Attacker bypasses the WAF using an encoding the WAF does not normalize, then reaches a restricted endpoint on the backend.", "steps": ["Exploit: Double-encoding bypass on /admin (Encoding Bypass)", "Exploit: HTTP Parameter Pollution accepted (Parser Differential)", "Exploit: Path override via X-Original-URL (Header Injection)"], "finding_count": 3}, {"name": "Request Smuggling \u2192 Cache Poisoning", "severity": "critical", "description": "Chain of 2 findings", "impact": "Attacker smuggles a request that poisons the cache, serving malicious content to every visitor of the affected URL.", "steps": ["Exploit: CL.TE HTTP Request Smuggling (HTTP Request Smuggling)", "Exploit: Cache poisoning via X-Forwarded-Host (Cache Poisoning)"], "finding_count": 2}, {"name": "Header Override \u2192 Admin Access", "severity": "critical", "description": "Chain of 2 findings", "impact": "Attacker uses X-Original-URL or X-Rewrite-URL to route through an allowed proxy path while the backend serves the admin panel.", "steps": ["Exploit: Path override via X-Original-URL (Header Injection)", "Exploit: Double-encoding bypass on /admin (Encoding Bypass)"], "finding_count": 2}, {"name": "Information Leak \u2192 Targeted Exploitation", "severity": "high", "description": "Chain of 3 findings", "impact": "Version disclosure reveals specific software versions with known CVEs, combined with an ACL bypass to reach the vulnerable component.", "steps": ["Exploit: Verbose technology disclosure via headers (Information Disclosure)", "Exploit: Double-encoding bypass on /admin (Encoding Bypass)", "Exploit: Path override via X-Original-URL (Header Injection)"], "finding_count": 3}, {"name": "Double Encoding \u2192 WAF Evasion", "severity": "high", "description": "Chain of 2 findings", "impact": "Double-encoded payloads pass the WAF (which decodes once and sees benign input) but the backend decodes twice, executing the malicious payload.", "steps": ["Exploit: Double-encoding bypass on /admin (Encoding Bypass)", "Exploit: HTTP Parameter Pollution accepted (Parser Differential)"], "finding_count": 2}, {"name": "HPP \u2192 Parameter Injection", "severity": "high", "description": "Chain of 2 findings", "impact": "Duplicate parameters let the attacker supply one value the WAF inspects and a different value the backend uses.", "steps": ["Exploit: HTTP Parameter Pollution accepted (Parser Differential)", "Exploit: Double-encoding bypass on /admin (Encoding Bypass)"], "finding_count": 2}];
+const fingerprint = {"web_server": "Gunicorn", "framework": "Django 4.2", "waf": "Cloudflare WAF", "reverse_proxy": "Nginx 1.25.3", "cdn": "Cloudflare", "language": "Python", "layer_count": 5, "layers": [{"label": "CDN", "value": "Cloudflare"}, {"label": "WAF", "value": "Cloudflare WAF"}, {"label": "Reverse Proxy", "value": "Nginx 1.25.3"}, {"label": "Web Server", "value": "Gunicorn 21.2.0"}, {"label": "Framework", "value": "Django 4.2"}, {"label": "Language", "value": "Python"}]};
+const catLabels = ["HTTP Request Smuggling", "Encoding Bypass", "Cache Poisoning", "Header Injection", "Authorization Bypass", "Parser Differential", "Information Disclosure"];
+const catValues = [1, 1, 1, 2, 1, 1, 2];
+
+/* ── Charts ── */
+const sevCtx = document.getElementById('sevChart').getContext('2d');
+new Chart(sevCtx, {
+  type: 'doughnut',
+  data: {
+    labels: ['Critical','High','Medium','Low','Info'],
+    datasets: [{
+      data: [1,4,2,1,1],
+      backgroundColor: ['#ff1744','#ff5252','#ffc107','#4caf50','#2196f3'],
+      borderColor: '#0c0c1d', borderWidth: 3, hoverOffset: 8
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    cutout: '65%',
+    plugins: {
+      legend: { position:'bottom', labels:{ color:'#6a6a8e', padding:15, font:{size:12} } }
+    }
+  }
+});
+
+const catCtx = document.getElementById('catChart').getContext('2d');
+new Chart(catCtx, {
+  type: 'bar',
+  data: {
+    labels: catLabels,
+    datasets: [{
+      data: catValues,
+      backgroundColor: catLabels.map((_,i) => {
+        const colors = ['#00e5ff','#7c4dff','#ff1744','#ffc107','#4caf50','#ff5252','#2196f3','#e040fb'];
+        return colors[i % colors.length];
+      }),
+      borderRadius: 6, borderSkipped: false, maxBarThickness: 50
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    indexAxis: 'y',
+    plugins: { legend:{ display:false } },
+    scales: {
+      x: { grid:{ color:'rgba(255,255,255,.05)' }, ticks:{ color:'#6a6a8e' } },
+      y: { grid:{ display:false }, ticks:{ color:'#e0e0f0', font:{size:11} } }
+    }
+  }
+});
+
+/* ── Fingerprint Layers ── */
+(function(){
+  const el = document.getElementById('layerStack');
+  if (!fingerprint.layers.length) {
+    el.innerHTML = '<div style="color:var(--dim);font-size:.85rem">No distinct layers identified — single-layer stack.</div>';
+    return;
+  }
+  const maxLayers = 5;
+  fingerprint.layers.forEach((l,i) => {
+    const pct = ((fingerprint.layers.length - i) / maxLayers * 100).toFixed(0);
+    el.innerHTML += `
+      <div class="layer-item">
+        <div class="layer-icon"></div>
+        <div class="layer-label">${esc(l.label)}</div>
+        <div class="layer-value">${esc(l.value)}</div>
+        <div class="layer-bar"><div class="layer-bar-fill" style="width:${pct}%"></div></div>
+      </div>`;
+  });
+  el.innerHTML += `
+    <div style="color:var(--dim);font-size:.8rem;margin-top:.5rem">
+      ${fingerprint.layer_count} parsing layer(s) detected — more layers = more potential differentials
+    </div>`;
+})();
+
+/* ── Attack Chains ── */
+(function(){
+  const el = document.getElementById('chainsSection');
+  if (!chains.length) return;
+  let html = '<div class="section-title"><span class="icon">&#9939;</span> Attack Chains</div>';
+  chains.forEach((c,i) => {
+    const sevColor = {critical:'var(--crit)',high:'var(--high)',medium:'var(--med)'}[c.severity]||'var(--info)';
+    const sevBg = {critical:'#ff1744',high:'#ff5252',medium:'#ffc107',low:'#4caf50'}[c.severity]||'#2196f3';
+    const sevFg = c.severity==='medium'?'#000':'#fff';
+    html += `
+    <div class="chain-card">
+      <div class="chain-name">${esc(c.name)}</div>
+      <span class="chain-severity" style="background:${sevBg};color:${sevFg}">${c.severity.toUpperCase()}</span>
+      <ol class="chain-steps">${c.steps.map(s=>`<li>${esc(s)}</li>`).join('')}</ol>
+      <div class="chain-impact">Impact: ${esc(c.impact)}</div>
+    </div>`;
+  });
+  el.innerHTML = html;
+})();
+
+/* ── Findings ── */
+(function(){
+  const el = document.getElementById('findingsContainer');
+  findings.forEach((f,i) => {
+    let body = `<div class="finding-desc">${esc(f.description)}</div>`;
+    if (f.evidence) body += `<div class="finding-evidence">${esc(f.evidence)}</div>`;
+    if (f.has_differential && f.differential) {
+      body += '<table class="diff-table"><tr><th>Layer</th><th>Interpretation</th><th>Status</th></tr>';
+      f.differential.layers.forEach(l => {
+        const cls = l.status && l.status < 400 ? 'status-ok' : 'status-bad';
+        body += `<tr><td>${esc(l.name)}</td><td>${esc(l.interpretation)}</td><td class="${cls}">${l.status||'—'}</td></tr>`;
+      });
+      body += '</table>';
+      if (f.differential.exploitable) body += '<div class="diff-exploitable">&#9889; Exploitable mismatch</div>';
+    }
+    if (f.remediation) body += `<div class="finding-remediation">&#128161; ${esc(f.remediation)}</div>`;
+    body += '<div class="finding-meta">';
+    body += `<span class="finding-module">${esc(f.module)} module</span>`;
+    f.chain_tags.forEach(t => { body += `<span class="finding-tag">${esc(t)}</span>`; });
+    body += '</div>';
+
+    el.innerHTML += `
+    <div class="finding-card" onclick="this.classList.toggle('open')">
+      <div class="finding-header">
+        <div class="severity-dot ${f.severity}"></div>
+        <div class="finding-title">#${i+1} ${esc(f.title)}</div>
+        <span class="finding-sev ${f.severity}">${f.severity.toUpperCase()}</span>
+        <span class="finding-arrow">&#9656;</span>
+      </div>
+      <div class="finding-body">${body}</div>
+    </div>`;
+  });
+})();
+
+/* ── Animated counter ── */
+function animCount(id, target){
+  const el = document.getElementById(id);
+  if(!el) return;
+  let current = 0;
+  const step = Math.max(1, Math.ceil(target/30));
+  const iv = setInterval(()=>{
+    current += step;
+    if(current >= target){ current = target; clearInterval(iv); }
+    el.textContent = current;
+  }, 30);
+}
+animCount('anim-total', 9);
+animCount('anim-crit', 1);
+animCount('anim-high', 4);
+animCount('anim-med', 2);
+animCount('anim-low', 1 + 1);
+animCount('anim-chains', 6);
+
+function esc(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+</script>
+</body>
+</html>
